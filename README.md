@@ -80,6 +80,14 @@ python -m svoice.data.audio $spk1 > $out/s1.json
 
 Notice, we already provided the yaml file for it. Can be found under `conf/dset/debug.yaml`.
 
+To quickly see the code in action, create a <a href="https://www.comet.ml/">Comet API key</a>, and run the following:
+```
+COMET_API_KEY=YOUR-API-KEY python train.py
+```
+Demo Project: https://www.comet.ml/comet-papers/svoice <br /><br />
+<p align="center"><img src="https://user-images.githubusercontent.com/49341767/110143890-8cf30e80-7df9-11eb-9fc6-7c63111a5068.png" /><br />
+Example prediction logged in comet.</p>
+
 ### Data Structure
 The data loader reads both mixture and separated json files named: `mix.json` and `s<id>.json` where `<id>` is a running identifier. These files should contain all the paths to the wav files to be used to optimize and test the model along with their size (in frames).
 You can use `python -m svoice.data.audio FOLDER_WITH_WAV1 [FOLDER_WITH_WAV2 ...] > OUTPUT.json` to generate those files.
