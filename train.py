@@ -4,7 +4,7 @@
 # This source code is licensed under the license found in the
 # LICENSE file in the root directory of this source tree.
 # Authors: Yossi Adi (adiyoss) and  Alexandre Défossez (adefossez)
-
+from svoice.comet_utils import CometLogger
 import json
 import logging
 import os
@@ -28,6 +28,14 @@ def run(args):
     from svoice.data.data import Trainset, Validset
     from svoice.models.swave import SWave
     from svoice.solver import Solver
+
+    comet_logger = CometLogger(args.comet)
+
+    comet_logger.log_others(vars(args))
+    comet_logger.log_code('../../svoice/solver.py')
+    comet_logger.log_code('../../svoice/data/audio.py')
+    comet_logger.log_code('../../svoice/data/data.py')
+    comet_logger.add_tag('wav_logs')
 
     logger.info("Running on host %s", socket.gethostname())
     distrib.init(args)
@@ -90,7 +98,7 @@ def run(args):
 
     # Construct Solver
     solver = Solver(data, model, optimizer, args)
-    solver.train()
+    solver.train(comet_logger)
 
 
 def _main(args):

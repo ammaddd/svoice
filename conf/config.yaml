@@ -12,6 +12,7 @@ cv_maxlen: 8
 validfull: 1   # use entire samples at valid
 
 # Logging and printing, and does not impact training
+comet: False
 num_prints: 5
 device: cuda
 num_workers: 5
