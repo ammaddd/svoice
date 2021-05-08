@@ -40,7 +40,7 @@ parser.add_argument('-v', '--verbose', action='store_const', const=logging.DEBUG
 
 
 def save_wavs(estimate_source, mix_sig, lengths, filenames, out_dir, sr=16000,
-              experiment=None, epoch=0, comet_save=True):
+              comet_logger=None, epoch=0, comet_save=True):
     # Remove padding and flat
     flat_estimate = remove_pad(estimate_source, lengths)
     mix_sig = remove_pad(mix_sig, lengths)
@@ -50,18 +50,18 @@ def save_wavs(estimate_source, mix_sig, lengths, filenames, out_dir, sr=16000,
             out_dir, os.path.basename(filename).strip(".wav"))
         write(mix_sig[i], filename + ".wav", sr=sr)
         if i == 0 and comet_save:
-            experiment.log_audio(filename + ".wav", step=epoch,
-                                 sample_rate=sr, file_name='real_mixture_'+
-                                 str(epoch))
+            comet_logger.log_audio(filename + ".wav", step=epoch,
+                                   sample_rate=sr, file_name='real_mixture_'+
+                                   str(epoch))
         C = flat_estimate[i].shape[0]
         # future support for wave playing
         for c in range(C):
             write(flat_estimate[i][c], filename + f"_s{c + 1}.wav", sr=sr)
             if i == 0 and comet_save:
-                experiment.log_audio(filename + f"_s{c + 1}.wav",
-                                     step=epoch, sample_rate=sr,
-                                     file_name='pred_source-{}_{}'.
-                                     format(c+1, epoch))
+                comet_logger.log_audio(filename + f"_s{c + 1}.wav",
+                                       step=epoch, sample_rate=sr,
+                                       file_name='pred_source-{}_{}'.
+                                       format(c+1, epoch))
 
 
 def write(inputs, filename, sr=8000):
@@ -87,7 +87,7 @@ def get_mix_paths(args):
     return mix_dir, mix_json
 
 
-def separate(args, model=None, local_out_dir=None, experiment=None, epoch=0):
+def separate(args, model=None, local_out_dir=None, comet_logger=None, epoch=0):
     mix_dir, mix_json = get_mix_paths(args)
     if not mix_json and not mix_dir:
         logger.error("Must provide mix_dir or mix_json! "
@@ -137,7 +137,7 @@ def separate(args, model=None, local_out_dir=None, experiment=None, epoch=0):
                 comet_save = False
             save_wavs(estimate_sources, mixture, lengths,
                       filenames, out_dir, sr=args.sample_rate,
-                      experiment=experiment, epoch=epoch,
+                      comet_logger=comet_logger, epoch=epoch,
                       comet_save=comet_save)
 
 

@@ -105,7 +105,7 @@ class Solver(object):
             self.history = package['history']
             self.best_state = package['best_state']
 
-    def train(self, experiment):
+    def train(self, comet_logger):
         # Optimizing the model
         if self.history:
             logger.info("Replaying metrics from previous run")
@@ -119,9 +119,12 @@ class Solver(object):
             start = time.time()
             logger.info('-' * 70)
             logger.info("Training...")
-            with experiment.context_manager("train"):
-                experiment.set_epoch(epoch)
-                train_loss = self._run_one_epoch(epoch, experiment)
+            try:
+                with comet_logger.context_manager("train"):
+                    comet_logger.set_epoch(epoch)
+                    train_loss = self._run_one_epoch(epoch, comet_logger)
+            except:
+                train_loss = self._run_one_epoch(epoch, comet_logger)
             logger.info(bold(f'Train Summary | End of Epoch {epoch + 1} | '
                              f'Time {time.time() - start:.2f}s | Train Loss {train_loss:.5f}'))
 
@@ -130,10 +133,14 @@ class Solver(object):
             logger.info('Cross validation...')
             self.model.eval()  # Turn off Batchnorm & Dropout
             with torch.no_grad():
-                with experiment.context_manager("validation"):
-                    experiment.set_epoch(epoch)
-                    valid_loss = self._run_one_epoch(epoch, experiment,
-                                                    cross_valid=True)
+                try:
+                    with comet_logger.context_manager("validation"):
+                        comet_logger.set_epoch(epoch)
+                        valid_loss = self._run_one_epoch(epoch, comet_logger,
+                                                         cross_valid=True)
+                except:
+                    valid_loss = self._run_one_epoch(epoch, comet_logger,
+                                                     cross_valid=True)
             logger.info(bold(f'Valid Summary | End of Epoch {epoch + 1} | '
                              f'Time {time.time() - start:.2f}s | Valid Loss {valid_loss:.5f}'))
 
@@ -143,9 +150,10 @@ class Solver(object):
                     self.sched.step(valid_loss)
                 else:
                     self.sched.step()
-                    experiment.log_metric("learning_rate",
-                                          self.optimizer.state_dict()
-                                          ["param_groups"][0]["lr"], epoch=epoch)
+                    comet_logger.log_metric("learning_rate",
+                                            self.optimizer.state_dict()
+                                            ["param_groups"][0]["lr"],
+                                            epoch=epoch)
                 logger.info(
                     f'Learning rate adjusted: {self.optimizer.state_dict()["param_groups"][0]["lr"]:.5f}')
 
@@ -171,8 +179,8 @@ class Solver(object):
 
                 # separate some samples
                 logger.info('Separate and save samples...')
-                separate(self.args, self.model, self.samples_dir, experiment,
-                         epoch)
+                separate(self.args, self.model, self.samples_dir,
+                         comet_logger, epoch)
 
             self.history.append(metrics)
             info = " | ".join(
@@ -188,7 +196,7 @@ class Solver(object):
                     logger.debug("Checkpoint saved to %s",
                                  self.checkpoint.resolve())
 
-    def _run_one_epoch(self, epoch, experiment, cross_valid=False):
+    def _run_one_epoch(self, epoch, comet_logger, cross_valid=False):
         total_loss = 0
         data_loader = self.tr_loader if not cross_valid else self.cv_loader
 
@@ -230,7 +238,7 @@ class Solver(object):
 
             total_loss += loss.item()
             if cross_valid:
-                experiment.log_metric("loss", loss.item())
+                comet_logger.log_metric("loss", loss.item())
             logprog.update(loss=format(total_loss / (i + 1), ".5f"))
 
             # Just in case, clear some memory
