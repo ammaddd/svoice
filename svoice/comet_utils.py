@@ -88,6 +88,11 @@ class CometLogger:
         self._experiment.log_code(file_name, folder, code, code_name)
 
     @_requiresComet
+    def is_logging(self):
+        """Returns: comet logging status"""
+        return self._logging
+
+    @_requiresComet
     def add_tag(self, tag):
         """Add a tag to the experiment.
         Args:   

@@ -11,6 +11,7 @@ import logging
 from pathlib import Path
 import os
 import time
+from contextlib import suppress
 
 import numpy as np
 import torch
@@ -119,12 +120,14 @@ class Solver(object):
             start = time.time()
             logger.info('-' * 70)
             logger.info("Training...")
-            try:
-                with comet_logger.context_manager("train"):
-                    comet_logger.set_epoch(epoch)
-                    train_loss = self._run_one_epoch(epoch, comet_logger)
-            except:
+
+            context_manager = comet_logger.context_manager("train") \
+                              if comet_logger.is_logging() == True \
+                              else suppress()
+            with context_manager:
+                comet_logger.set_epoch(epoch)
                 train_loss = self._run_one_epoch(epoch, comet_logger)
+            
             logger.info(bold(f'Train Summary | End of Epoch {epoch + 1} | '
                              f'Time {time.time() - start:.2f}s | Train Loss {train_loss:.5f}'))
 
@@ -133,14 +136,14 @@ class Solver(object):
             logger.info('Cross validation...')
             self.model.eval()  # Turn off Batchnorm & Dropout
             with torch.no_grad():
-                try:
-                    with comet_logger.context_manager("validation"):
-                        comet_logger.set_epoch(epoch)
-                        valid_loss = self._run_one_epoch(epoch, comet_logger,
-                                                         cross_valid=True)
-                except:
+                context_manager = comet_logger.context_manager("validation") \
+                              if comet_logger.is_logging() == True \
+                              else suppress()
+                with context_manager:
+                    comet_logger.set_epoch(epoch)
                     valid_loss = self._run_one_epoch(epoch, comet_logger,
                                                      cross_valid=True)
+        
             logger.info(bold(f'Valid Summary | End of Epoch {epoch + 1} | '
                              f'Time {time.time() - start:.2f}s | Valid Loss {valid_loss:.5f}'))
 
